@@ -62,6 +62,7 @@ use Piwik\Tracker\Action;
  */
 class Archiver extends \Piwik\Plugin\Archiver
 {
+    const EVENTS_CATEGORY_ACTION_NAME_RECORD_NAME = 'Events_category_action_name';
     const EVENTS_CATEGORY_ACTION_RECORD_NAME = 'Events_category_action';
     const EVENTS_CATEGORY_NAME_RECORD_NAME = 'Events_category_name';
     const EVENTS_ACTION_CATEGORY_RECORD_NAME = 'Events_action_category';
@@ -86,6 +87,7 @@ class Archiver extends \Piwik\Plugin\Archiver
     protected function getRecordToDimensions()
     {
         return array(
+            self::EVENTS_CATEGORY_ACTION_NAME_RECORD_NAME => array("eventCategory", "eventAction", "eventName"),
             self::EVENTS_CATEGORY_ACTION_RECORD_NAME => array("eventCategory", "eventAction"),
             self::EVENTS_CATEGORY_NAME_RECORD_NAME   => array("eventCategory", "eventName"),
             self::EVENTS_ACTION_NAME_RECORD_NAME     => array("eventAction", "eventName"),
@@ -261,6 +263,15 @@ class Archiver extends \Piwik\Plugin\Archiver
                 continue;
             }
             $dataArray->sumMetricsEventsPivot($mainLabel, $subLabel, $row);
+            
+            if ( count($dimensions) === 3 ) {
+                $lastDim = $dimensions[2];
+                $lastLabel = $row[$lastDim];
+                if (empty($lastLabel)) {
+                    continue;
+                }
+                $dataArray->sumMetricsEventsPivotTree($mainLabel, $subLabel, $lastLabel, $row);
+            }
         }
     }
 

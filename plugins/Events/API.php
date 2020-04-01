@@ -50,12 +50,14 @@ use Piwik\Piwik;
 class API extends \Piwik\Plugin\API
 {
     protected $defaultMappingApiToSecondaryDimension = array(
+        'getEventsTree' => null,
         'getCategory' => 'eventAction',
         'getAction'   => 'eventName',
         'getName'     => 'eventAction',
     );
 
     protected $mappingApiToRecord = array(
+        'getEventsTree'             => Archiver::EVENTS_CATEGORY_ACTION_NAME_RECORD_NAME,
         'getCategory'             =>
             array(
                 'eventAction' => Archiver::EVENTS_CATEGORY_ACTION_RECORD_NAME,
@@ -216,5 +218,10 @@ class API extends \Piwik\Plugin\API
     public function getCategoryFromNameId($idSite, $period, $date, $idSubtable, $segment = false)
     {
         return $this->getDataTable(__FUNCTION__, $idSite, $period, $date, $segment, $expanded = false, $idSubtable);
+    }
+
+    public function getEventsTree($idSite, $period, $date, $segment=false)
+    {
+        return $this->getDataTable(__FUNCTION__, $idSite, $period, $date, $segment, true, null, null, false);
     }
 }

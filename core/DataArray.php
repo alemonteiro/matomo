@@ -22,11 +22,13 @@ class DataArray
 {
     protected $data = array();
     protected $dataTwoLevels = array();
+    protected $dataTreeLevels = array();
 
-    public function __construct($data = array(), $dataArrayByLabel = array())
+    public function __construct($data = array(), $dataArrayByLabel = array(), $dataArrayTree = array())
     {
         $this->data = $data;
         $this->dataTwoLevels = $dataArrayByLabel;
+        $this->dataTreeLevels = $dataArrayTree;
     }
 
     /**
@@ -42,6 +44,11 @@ class DataArray
     public function getDataArrayWithTwoLevels()
     {
         return $this->dataTwoLevels;
+    }
+
+    public function getDataArrayWithTreeLevels()
+    {
+        return $this->dataTreeLevels;
     }
 
     public function sumMetricsVisits($label, $row)
@@ -329,6 +336,14 @@ class DataArray
         $this->doSumVisitsMetrics($row, $this->dataTwoLevels[$parentLabel][$label]);
     }
 
+    public function sumMetricsVisitsPivotTree($parentLabel, $midLabel, $label, $row)
+    {
+        if (!isset($this->dataTreeLevels[$parentLabel][$midLabel][$label])) {
+            $this->dataTreeLevels[$parentLabel][$midLabel][$label] = static::makeEmptyRow();
+        }
+        $this->doSumVisitsMetrics($row, $this->dataTreeLevels[$parentLabel][$midLabel][$label]);
+    }
+
     public function sumMetricsGoalsPivot($parentLabel, $label, $row)
     {
         $idGoal = $row['idgoal'];
@@ -354,9 +369,22 @@ class DataArray
         $this->doSumEventsMetrics($row, $this->dataTwoLevels[$parentLabel][$label]);
     }
 
+    public function sumMetricsEventsPivotTree($parentLabel, $midLabel, $label, $row)
+    {
+        if (!isset($this->dataTreeLevels[$parentLabel][$midLabel][$label])) {
+            $this->dataTreeLevels[$parentLabel][$midLabel][$label] = static::makeEmptyRow();
+        }
+        $this->doSumEventsMetrics($row, $this->dataTreeLevels[$parentLabel][$midLabel][$label] );
+    }
+
     public function setRowColumnPivot($parentLabel, $label, $column, $value)
     {
         $this->dataTwoLevels[$parentLabel][$label][$column] = $value;
+    }
+
+    public function setRowColumnPivotTree($parentLabel, $midLabel, $label, $column, $value)
+    {
+        $this->dataTreeLevels[$parentLabel][$midLabel][$label][$column] = $value;
     }
 
     public function enrichMetricsWithConversions()
@@ -365,6 +393,12 @@ class DataArray
 
         foreach ($this->dataTwoLevels as &$metricsBySubLabel) {
             $this->enrichWithConversions($metricsBySubLabel);
+        }
+
+        foreach ($this->dataTreeLevels as &$metricsByMidLabel) {
+            foreach ($metricsByMidLabel as &$metricsBySubLabel) {
+                $this->enrichWithConversions($metricsBySubLabel);
+            }
         }
     }
 
@@ -426,12 +460,24 @@ class DataArray
     {
         $dataArray = $this->getDataArray();
         $dataArrayTwoLevels = $this->getDataArrayWithTwoLevels();
+        $dataArrayTreeLevels = $this->getDataArrayWithTreeLevels();
 
+        $midTableByLabel = null;
         $subtableByLabel = null;
+        
+        if ( !empty($dataArrayTreeLevels)) {
+            $midTableByLabel = array();
+            foreach ($dataArrayTreeLevels as $label => $midTable) {
+                foreach($midTable as $lastLabel => $lastTable) {
+                    $midTableByLabel[$label][$lastLabel] = DataTable::makeFromIndexedArray($lastTable);
+                }
+            }
+        }
+
         if (!empty($dataArrayTwoLevels)) {
             $subtableByLabel = array();
             foreach ($dataArrayTwoLevels as $label => $subTable) {
-                $subtableByLabel[$label] = DataTable::makeFromIndexedArray($subTable);
+                $subtableByLabel[$label] = DataTable::makeFromIndexedArray($subTable, $midTableByLabel != null && isset($midTableByLabel[$label]) ? $midTableByLabel[$label] : null);
             }
         }
         return DataTable::makeFromIndexedArray($dataArray, $subtableByLabel);
